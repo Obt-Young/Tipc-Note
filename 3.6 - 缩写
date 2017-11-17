@@ -1,0 +1,9 @@
+API - Application Programming Interface
+
+MAC - Message Authentication Code [RFC2104]
+
+MTU - Maximum Transmission Unit
+
+RTT - Round Trip Time, the elapsed time from the moment a message is sent to a destination to the moment it arrives back to the sender, 
+      provided the message is immediately bounced back from the sender. Typically on the order of 100 usecs, process-to-process, between
+      2 Ghz CPUs via a 100 Mbps Ethernet switch.
