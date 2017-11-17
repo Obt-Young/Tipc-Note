@@ -1,0 +1,53 @@
+#1 广播（Broadcast） ： 向本“集群”内所有节点发送消息的动作，每个节点收到的消息都一样。与“广播”等价的一个概念就是“组播（multicast）”。只不过，广播
+                       是面向TIPC而言，组播是面向bearer而言。可以这样认为，TIPC的广播功能是使用bearer的组播功能来完成的。他们一起做了同一件事，
+                       但是在各自的层（layer）有各自的叫法。
+#2 集群（cluster）   ： 集群内所有的节点必须是满匹配的。
+#3 链接（link）      ： 两个节点之间可以有一个或者两个link，维持两个link需要四个bearer，且不存在交叉配对。两个节点在有两个link的情况下，这两个link
+                       要么是负载均衡工作模式，要么是主备工作模式。
+#4 链接接替（Link Changeover）：主备工作模式下，当主link不可用时，备节点顶替的现象。
+#5 坐标透明（Location Transparency）：一个“集群”内，即使不知道对端的物理地址，也可以通过某种手段，把消息准确传达。
+#6 消息（Message）   ： TIPC端口（port）之间，或者TIPC子系统（subsystem）之间，做信息交换的最基本单位。
+                       消息=消息头+消息体，0个字节<=消息体<=66000个字节。
+#7 消息捆绑（Message Bundling）：为了最小化 消息无法被“立刻发出” 而带来的“阻塞（congestion）效应”，多个消息会被捆绑成Ethernet frame包。
+#8 消息切片（Message Fragmentation）：当一个消息比较大的时候，需要把消息先切片，然后在接收端重组。
+#9 组播（Multicast） ： 同“广播（Broadcast）”，把一个消息发送给多个TIPC port。
+#10 名称（Name）     ： 服务类型（Port Name）的别名。
+#11 名称序列（Name Sequence）： 服务类型集（Port Name Sequence）的别名。
+#12 服务列表（Name Table）： 每个TIPC节点都维持的一个键值对结构，用来存放服务类型（port name）和服务地址（port identity）的对照关系。
+#13 网络（Network）  ： 拓扑的最大单位。
+#14 网络地址（Network Address）： TIPC地址。
+#15 网络ID（Network Identity）： 标记网络的一个整数值，用来区分不同的网络。
+#16 节点（node）     ： 一台安装了TIPC的电脑，只有一个TIPC地址。（一对一对一的关系）
+#17 包（Packet）     ： bearer之间通信的基本单位，其中可以包含一个或多个消息（message），或者一个消息切片。
+
+            message和packet的关系：
+              1.message是port之间沟通的载体，是面向应用软件或者TIPC组件的；packet是bearer之间沟通的载体，是面向驱动程序的。
+              2.多个message可以打包进一个packet中，一起经由bearer出去，也可以一个message Fragmentation作为一个packet，经由bearer出去，
+                当出现一个packet中只有一个message Fragmentation的时候，说明这个message比较大。
+                
+#18 （Payload Message） ： 消息的一种，其内容为“业务数据”或者“业务向TIPC申请服务的请求”
+#19 端口（Port）     ： 通讯的端点，TIPC端口只能被自己的拥有者销毁。可以把这个端口和Socket的端口做类比。
+#20 服务地址（Port Identity）：一个物理地址，例如<Z.C.N:reference>，这个tipc地址和reference共同被称作端口ID。
+#21 服务类型（Port Name）  ：一个标识，表示某个TIPC端口可以提供什么样的服务，例如{type,instance}。出于负载均衡和主备模式的目的，往往多个端口ID会
+                          被绑到一个端口名上；另一方面，如果某个端口提供了多样的服务，那么也可以把一个端口ID绑定多个端口名。
+#22 服务类型集（Port Name Sequence）：一次性代表多个服务类型的手段，比如{type,lower-instance,upper-instance}。
+                          
+             port、Port Identity和port name的关系：
+                1. port是一个概念，不映射到任何可见的东西。
+                2. Port Identity标识了某个软件服务对外开放的地址层面的入口。
+                3. port name表示了某类服务，这个不属于软件层面，相当于一个标签列表，里面有很多标签，每个标签就是标签，不具备任何软件映射
+                4. Port Identity和port name，Port Identity是实实在在的地址，port name相当于在Port Identity上面又封装了一下，可以理解为服务
+                   注册表。
+               
+#23 服务（Service）：占用一个TIPC端口的TIPC内部软件叫做一个服务。
+#24 服务地址（Service Address）：同Port Name
+#25 单播（Unicast）： 发送一个消息到一个节点。
+                
+                
+                
+                
+                
+                
+                
+                
+                
