@@ -1,0 +1,7 @@
+#1  坐标透明
+TIPC有两种服务地址类型：  服务类型            {type，instance}
+                        服务类型集           {type，lower-instance,upper-instance}
+TIPC有两种物理地址类型：  TIPC地址            <x.x.x> 
+                        服务地址             <x.x.x:reference>
+                        
+#
