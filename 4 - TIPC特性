@@ -4,4 +4,9 @@ TIPC有两种服务地址类型：  服务类型            {type，instance}
 TIPC有两种物理地址类型：  TIPC地址            <x.x.x> 
                         服务地址             <x.x.x:reference>
                         
-#
+#2 默认情况下，对外发布服务的可被见范围是集群，如果有特殊要求，也可以在创建服务的时候指定这个范围：
+   Value     Meaning
+-----     -------
+1         Visibility within whole own zone
+2         Visibility within whole own cluster
+3         Visibility limited to own node
