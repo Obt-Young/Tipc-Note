@@ -1,4 +1,8 @@
 #1 - internal报文
+      internal报文头和payload报文头有很多相似的地方，下面说一些不一样的地方：
+      Sequence Gap：LINK_PROTOCOL使用
+      Broadcast Gap After：BCAST_PROTOCOL使用
+      Broadcast Gap To:BCAST_PROTOCOL使用
 
 #2 - link的创建
       
