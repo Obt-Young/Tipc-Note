@@ -1,0 +1,21 @@
+#1 问题描述
+   业务层根据publish报文和withdrawn报文来判断对端（服务端）是否依旧提供服务，进而判断是否可以继续收到心跳报文，现象为，业务层收到对端
+   发来的withdrawn报文，表示对端已经将相应的type+instance在本地注销（注销时会向整个网络发送withdrawn报文以通知大家，自己的服务此时此刻
+   不可用了），而在6秒内又没有收到publish报文，这样进一步猜测对端服务不行了（其实这样的判断是武断的）。从而臆断为TIPC链路不行了，这样
+   的判断相当不可靠！
+   
+#2 问题相关人
+   屈常彬
+
+#3 定位思路
+   1.在收到withdrawn报文的地方打印withdrawn报文的内容，关键点为：type和instance
+   2.通过tipc-config -nt来查看所有可见服务，在其中筛选type和instance所对应的tipc地址
+
+#4 解决方法
+   通过tipc-config -nt查看时，发现对于同一个type和instance，有两个tipc地址与之对应，这样就很奇怪了！
+   尝试将多出来的tipc地址对应的机器reboot，问题解决！
+
+#5 值得深究的点
+   1.type和instance的分配机制？目前已知是可以手工分配的，那么手工分配发现相关type和instance已经被占用了的话，是不给注册？还是可以注册？
+   
+   2.
