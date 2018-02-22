@@ -1,0 +1,14 @@
+获取某行开始的前后N行
+-------------------------------------------------
+watch -n 0.1 "tipc-config -ls|grep -A 9 '1.1.2'"	//刷新显示
+tt -ls|grep -A 9 '1.1.1:eth0-1.1.2:eth0'   //找到'1.1.1:eth0-1.1.2:eth0'的行，并输出自本行开始的向后9行
+tt -ls|grep -B 9 '1.1.1:eth0-1.1.2:eth0'   //找到'1.1.1:eth0-1.1.2:eth0'的行，并输出自本行开始的向前9行
+tt -ls|grep -B 9 '1.1.1:eth0-1.1.2:eth0'   //找到'1.1.1:eth0-1.1.2:eth0'的行，并输出自本行开始的向前后各9行
+http://www.cnblogs.com/wangkongming/p/3684905.html
+
+
+tcpdump
+-------------------------------------------------
+tcpdump -i ethx -s 0 -w xxx.cap	  抓ethx网卡上的包，写到xxx.cap文件中
+tcpdump -i eth0 ether[13]=0xca    只抓TIPC的包
+
