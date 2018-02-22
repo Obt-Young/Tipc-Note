@@ -12,3 +12,29 @@ tcpdump
 tcpdump -i ethx -s 0 -w xxx.cap	  抓ethx网卡上的包，写到xxx.cap文件中
 tcpdump -i eth0 ether[13]=0xca    只抓TIPC的包
 
+
+############################################################TIPC模块测试用例
+server:   ./tipcTS
+client:	  ./tipcTC 0
+############################################################################
+
+
+####################################################################自测用例
+===========多播通讯=============
+node1
+tipc-pipe -l --sock_type=SOCK_RDM --addr_type=TIPC_ADDR_MCAST 1 100
+node2
+tipc-pipe -l --sock_type=SOCK_RDM --addr_type=TIPC_ADDR_MCAST 1 100
+
+=============unicast通讯1=============
+node1（server）（name seq）
+tipc-pipe -l --addr_type=TIPC_ADDR_NAMESEQ 1 100
+node2（client）
+tipc-pipe --addr_type=TIPC_ADDR_NAME 55
+
+=============unicast通讯2=============
+node1（server）（name）
+tipc-pipe -l --addr_type=TIPC_ADDR_NAME 55
+node2（client）
+tipc-pipe --addr_type=TIPC_ADDR_NAME 55
+############################################################################
