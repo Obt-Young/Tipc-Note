@@ -33,8 +33,30 @@
               而这些特性，又进一步引出了TIPC的其他好处：更早地释放传输缓冲区，更早地检测到丢包并重传，更早地检测到节点的离群。
    （不具备的）：当然，TIPC对于“长传输延时”、“高丢包率”、“长报文”、“安全话题”等还是需要特殊处理。
 
+#5       Node A                                             Node B
+ -----------------                                 -----------------
+|      TIPC       |                               |      TIPC       |
+|   Application   |                               |   Application   |
+|-----------------|                               |-----------------|
+|                 |                               |                 |
+|      TIPC       |TIPC address       TIPC address|      TIPC       |
+|                 |                               |                 |
+|-----------------|                               |-----------------|
+| L2 or L3 Bearer |Bearer address   Bearer address| L2 or L3 Bearer |
+|     Service     |                               |     Service     |
+ -----------------                                 -----------------
+        |                                                  |
+        +---------------- Bearer Transport ----------------+
 
-   
+1- TIPC should be seen as a layer between an application using TIPC and a packet transport service such as Ethernet, 
+InfiniBand, UDP, TCP, or SCTP. The latter are denoted by the generic term "bearer service", or simply "bearer", 
+throughout this document.
+2- TIPC provides reliable transfer of user messages between TIPC users, or more specifically between two TIPC ports, 
+which are the endpoints of all TIPC communication. A TIPC user normally means a user process, but may also be a 
+kernel-level function or a driver.
+3- Described by standard terminology（术语） TIPC spans the level of transport, network, and signalling link layers, although 
+this does not inhibit it from using another transport level protocol as bearer, so that e.g. an TCP connection may 
+serve as bearer for a TIPC signalling link.
    
    
 
