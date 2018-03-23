@@ -1,0 +1,79 @@
+现象：messages日志中出现大量tipc的congestion日志，明显可见发送队列超出了预设值window值125个packets，最大达到了147个packets
+
+分析：congestion出现，有两种可能：1.网卡阻塞；2.TIPC阻塞
+
+知识点：1）TIPC传输的最小单位是packet，正常情况下（message<MTU），一个packet承载一个message.
+				1.1)阻塞的时候，多个message可能会被bundle到一个packet中，排队等待。阻塞消失后，packet会被发送出去，并在对端unbundle出多个报文。
+					（在资源充沛的情况下，一个packet对应一个message，在阻塞的情况下，一个packet可能包含多个message）
+				1.2)message>MTU的时候，一个message会被分割成fragment，然后被分配到多个packet中。
+		2）当有一次性大数据量的报文（message）时，容易产生packet队列；相反，连续的小数据量报文（message），不容易产生packet队列。
+				问：为什么连续多个packet不会造成队列情况，相反，单个packet过大会产生packet队列？
+				答：超过MTU个字节的报文会被自动分割多个packet，比如报文有3000个字节，那么在发送的时候会被分割成2个packet，并且形成一个由2个packet的
+					队列，因此队列的产生并不仅仅因为整个link都阻塞住了，也有可能是因为瞬间的”伪阻塞“，比如一个大报文无法再一个packet中发送，必须分割
+					后再发送。实际情况下，对于超过MTU的报文，在发送packet计数的时候确实是被当做多个packet记录的。
+		4）TIPC fragments和reassembles messages不能在同一个MTU内传输。
+		5）一个payload message能携带最多66000个字节。因此对于“低频率”的大报文通讯，最多只会出现66000/1500=44个packet排队。
+			编程时，超过66000个字节的报文（实际上掐头去尾，都发不了66000个字节），发送API会报错“message too long”，发不出去。
+			
+实验模拟：1）短间隔（远小于1s），66000个字节的大报文冲击，会出现：
+				Link <1.1.1:eth0-1.1.2:eth0> , fsm <WORKING_WORKING>
+				ACTIVE  MTU:1500  Priority:10  Tolerance:3000 ms  Window:50 packets
+				RX packets:16 fragments:0/0 bundles:0/0
+				TX packets:860989 fragments:860982/18717 bundles:0/0			（一共发出去多少个packet，一共产生了多少个fragment，一共产生了多少个bundle） 
+				TX profile sample:69 packets  average:1296 octets				（平均每个packet包含多少个字节，这里的69是样本数，average是平均值）
+				0-64:12% -256:0% -1024:0% -4096:88% -16384:0% -32768:0% -66000:0%			（message的尺寸，此时已经发生fragment了，因为MTU为1500，所以大部分的报文尺寸都在这个区间）
+				RX states:55718 probes:895 naks:0 defs:0 dups:0	
+				TX states:5107 probes:845 naks:0 acks:3367 dups:0				 
+				Congestion link:16513  Send queue max:95 avg:0 					（  发生了16513次阻塞，并不是每次输出congetion报文都会增加1，这个只是函数层面探测到阻塞就会加1，仅做概念性理解用
+																					出现的最大的队列长度为95，但是无法冲破95，此时日志中已经在报congestion了）
+		  
+				此时阻塞日志输出如下：
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 54 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 53 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 51 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 95 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 61 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 59 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 58 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 56 window 50
+				********以上日志由	net_ratelimit()为真是产生***********
+				
+				
+		  2）短间隔（远小于1s），10个字节的小报文冲击，会出现：
+				Link <1.1.1:eth0-1.1.2:eth0> , fsm <WORKING_WORKING>
+				ACTIVE  MTU:1500  Priority:10  Tolerance:3000 ms  Window:50 packets
+				RX packets:5 fragments:0/0 bundles:0/0
+				TX packets:1202613 fragments:0/0 bundles:0/0					（无fragment，因为是小包）
+				TX profile sample:14 packets  average:51 octets	
+				0-64:100% -256:0% -1024:0% -4096:0% -16384:0% -32768:0% -66000:0%
+				RX states:75266 probes:53 naks:0 defs:0 dups:0
+				TX states:103 probes:50 naks:0 acks:0 dups:0
+				Congestion link:25531  Send queue max:50 avg:3 					（阻塞了，但是始终不会冲破50这个window值）
+				
+				此时阻塞日志输出如下：
+				Dec 20 20:33:46 localhost kernel: tipc: xmit 1.1.1:eth0-1.1.2:eth0(50 vs 50) usr:0 type 2 1001001.3603243010 -> 1001002.2255200260(18888 17 2021161080) size 51 len 51
+				Dec 20 20:33:46 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 50 window 50
+				Dec 20 20:33:46 localhost kernel: tipc: xmit 1.1.1:eth0-1.1.2:eth0(50 vs 50) usr:0 type 2 1001001.3603243010 -> 1001002.2255200260(18888 17 2021161080) size 51 len 51
+				Dec 20 20:33:46 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 50 window 50
+				Dec 20 20:33:46 localhost kernel: tipc: xmit 1.1.1:eth0-1.1.2:eth0(50 vs 50) usr:0 type 2 1001001.3603243010 -> 1001002.2255200260(18888 17 2021161080) size 51 len 51
+				Dec 20 20:33:46 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 50 window 50
+				Dec 20 20:33:46 localhost kernel: tipc: xmit 1.1.1:eth0-1.1.2:eth0(50 vs 50) usr:0 type 2 1001001.3603243010 -> 1001002.2255200260(18888 17 2021161080) size 51 len 51
+				********以上日志由	net_ratelimit()为真是产生***********
+				
+				
+		  3）长间隔（1s），66000个字节的大报文冲击，会出现：
+				Link <1.1.1:eth0-1.1.2:eth0> , fsm <WORKING_WORKING>
+				ACTIVE  MTU:1500  Priority:10  Tolerance:3000 ms  Window:50 packets
+				RX packets:4 fragments:0/0 bundles:0/0
+				TX packets:3315 fragments:3312/72 bundles:0/0					（有fragment，属正常现象）
+				TX profile sample:105 packets  average:1460 octets
+				0-64:0% -256:0% -1024:0% -4096:100% -16384:0% -32768:0% -66000:0%
+				RX states:248 probes:55 naks:0 defs:0 dups:0
+				TX states:102 probes:47 naks:0 acks:0 dups:0
+				Congestion link:0  Send queue max:46 avg:9 						（没有任何阻塞发生，发送队列差点达到50，最后停在46不再上涨）
+				
+				
+				
+解决：符合第一种情况，可以采用如下两种手段：
+		1）缩减数据量
+		2）扩展window值
