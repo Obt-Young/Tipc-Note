@@ -1,0 +1,129 @@
+现象：messages日志中出现大量tipc的congestion日志，明显可见发送队列超出了预设值window值125个packets，最大达到了147个packets
+
+分析：congestion出现，有两种可能：1.网卡阻塞；2.TIPC阻塞
+
+知识点：1）TIPC传输的最小单位是packet，正常情况下（message<MTU），一个packet承载一个message.
+				1.1)阻塞的时候，多个message可能会被bundle到一个packet中，排队等待。阻塞消失后，packet会被发送出去，并在对端unbundle出多个报文。
+					（在资源充沛的情况下，一个packet对应一个message，在阻塞的情况下，一个packet可能包含多个message）
+				1.2)message>MTU的时候，一个message会被分割成fragment，然后被分配到多个packet中。
+		2）当有一次性大数据量的报文（message）时，容易产生packet队列；相反，连续的小数据量报文（message），不容易产生packet队列。
+				问：为什么连续多个packet不会造成队列情况，相反，单个packet过大会产生packet队列？
+				答：超过MTU个字节的报文会被自动分割多个packet，比如报文有3000个字节，那么在发送的时候会被分割成2个packet，并且形成一个由2个packet的
+					队列，因此队列的产生并不仅仅因为整个link都阻塞住了，也有可能是因为瞬间的”伪阻塞“，比如一个大报文无法再一个packet中发送，必须分割
+					后再发送。实际情况下，对于超过MTU的报文，在发送packet计数的时候确实是被当做多个packet记录的。
+		4）TIPC fragments和reassembles messages不能在同一个MTU内传输。
+		5）一个payload message能携带最多66000个字节。因此对于“低频率”的大报文通讯，最多只会出现66000/1500=44个packet排队。
+			编程时，超过66000个字节的报文（实际上掐头去尾，都发不了66000个字节），发送API会报错“message too long”，发不出去。
+			
+实验模拟：1）短间隔（远小于1s），66000个字节的大报文冲击，会出现：
+				Link <1.1.1:eth0-1.1.2:eth0> , fsm <WORKING_WORKING>
+				ACTIVE  MTU:1500  Priority:10  Tolerance:3000 ms  Window:50 packets
+				RX packets:16 fragments:0/0 bundles:0/0
+				TX packets:860989 fragments:860982/18717 bundles:0/0			（一共发出去多少个packet，一共产生了多少个fragment，一共产生了多少个bundle） 
+				TX profile sample:69 packets  average:1296 octets				（平均每个packet包含多少个字节，这里的69是样本数，average是平均值）
+				0-64:12% -256:0% -1024:0% -4096:88% -16384:0% -32768:0% -66000:0%			（message的尺寸，此时已经发生fragment了，因为MTU为1500，所以大部分的报文尺寸都在这个区间）
+				RX states:55718 probes:895 naks:0 defs:0 dups:0	
+				TX states:5107 probes:845 naks:0 acks:3367 dups:0				 
+				Congestion link:16513  Send queue max:95 avg:0 					（  发生了16513次阻塞，并不是每次输出congetion报文都会增加1，这个只是函数层面探测到阻塞就会加1，仅做概念性理解用
+																					出现的最大的队列长度为95，但是无法冲破95，此时日志中已经在报congestion了）
+		  
+				此时阻塞日志输出如下：
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 54 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 53 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 51 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 95 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 61 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 59 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 58 window 50
+				Dec 20 20:36:44 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 56 window 50
+				
+				小结：如果只有日志，没有xmit的日志，那么代表端口拥塞了
+			
+				
+				
+				
+		  2）短间隔（远小于1s），10个字节的小报文冲击，会出现：
+				Link <1.1.1:eth0-1.1.2:eth0> , fsm <WORKING_WORKING>
+				ACTIVE  MTU:1500  Priority:10  Tolerance:3000 ms  Window:50 packets
+				RX packets:5 fragments:0/0 bundles:0/0
+				TX packets:1202613 fragments:0/0 bundles:0/0					（无fragment，因为是小包）
+				TX profile sample:14 packets  average:51 octets	
+				0-64:100% -256:0% -1024:0% -4096:0% -16384:0% -32768:0% -66000:0%
+				RX states:75266 probes:53 naks:0 defs:0 dups:0
+				TX states:103 probes:50 naks:0 acks:0 dups:0
+				Congestion link:25531  Send queue max:50 avg:3 					（阻塞了，但是始终不会冲破50这个window值）
+				
+				此时阻塞日志输出如下：
+				Dec 20 20:33:46 localhost kernel: tipc: xmit 1.1.1:eth0-1.1.2:eth0(50 vs 50) usr:0 type 2 1001001.3603243010 -> 1001002.2255200260(18888 17 2021161080) size 51 len 51
+				Dec 20 20:33:46 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 50 window 50
+				Dec 20 20:33:46 localhost kernel: tipc: xmit 1.1.1:eth0-1.1.2:eth0(50 vs 50) usr:0 type 2 1001001.3603243010 -> 1001002.2255200260(18888 17 2021161080) size 51 len 51
+				Dec 20 20:33:46 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 50 window 50
+				Dec 20 20:33:46 localhost kernel: tipc: xmit 1.1.1:eth0-1.1.2:eth0(50 vs 50) usr:0 type 2 1001001.3603243010 -> 1001002.2255200260(18888 17 2021161080) size 51 len 51
+				Dec 20 20:33:46 localhost kernel: tipc: link 1.1.1:eth0-1.1.2:eth0 congestion! queue size 50 window 50
+				Dec 20 20:33:46 localhost kernel: tipc: xmit 1.1.1:eth0-1.1.2:eth0(50 vs 50) usr:0 type 2 1001001.3603243010 -> 1001002.2255200260(18888 17 2021161080) size 51 len 51
+				********以上日志由	net_ratelimit()为真是产生***********
+				
+				小结：结合代码，这个日志在int __tipc_link_xmit(struct tipc_link *l_ptr, struct sk_buff *buf)这个函数中报错
+						原因为：link的发送队列超过了window值
+						意义：代表link拥塞了
+				
+				
+				
+		  3）长间隔（1s），66000个字节的大报文冲击，会出现：
+				Link <1.1.1:eth0-1.1.2:eth0> , fsm <WORKING_WORKING>
+				ACTIVE  MTU:1500  Priority:10  Tolerance:3000 ms  Window:50 packets
+				RX packets:4 fragments:0/0 bundles:0/0
+				TX packets:3315 fragments:3312/72 bundles:0/0					（有fragment，属正常现象）
+				TX profile sample:105 packets  average:1460 octets
+				0-64:0% -256:0% -1024:0% -4096:100% -16384:0% -32768:0% -66000:0%
+				RX states:248 probes:55 naks:0 defs:0 dups:0
+				TX states:102 probes:47 naks:0 acks:0 dups:0
+				Congestion link:0  Send queue max:46 avg:9 						（没有任何阻塞发生，发送队列差点达到50，最后停在46不再上涨）
+				
+				
+				
+解决：符合第一种情况，可以采用如下两种手段：
+		1）缩减数据量				（业务层的数据会被影响）
+		2）扩展window值				（过大可能会导致什么问题？？）
+				
+				
+==========================================================================================================================================================================================================================================================
+5.3.5.  Flow Control
+The mechanism for end-to-end flow control at the connection level has as its primary purpose to stop a sending process from overrunning a slower receiving process. Other tasks, such as bearer, link, network, and node congestion control, are handled by other mechanisms in TIPC. Because of this, the algorithm can be kept very simple. It works as follows:
+The message sender (the API-adapter) keeps one counter, SENT_CNT, to count messsages he has sent, but which has not yet been acnkowledged. The counter is incremented for each sent message.
+The receiver counts the number of messages he delivers to the user, ignoring any messages pending in the process in-queue. For each N message, he sends back a CONN_MANAGER/ACK_MSG containing this number in its data part.
+When the sender receives the acknowledge message, he subtracts N from SENT_CNT, and stores the new value.
+When the sender wants to send a new message he must first check the value of SENT_CNT, and if this exceeds a certain limit, he must abstain from sending the message. A typical measure to take when this happens is to block the sending process until SENT_CNT is under the limit again, but this will be API-dependent.
+The recommended value for the send window N is at least 200 messages, and the limit for SENT should be at least 2*N.
+
+5.3.5.  流量控制
+在连接层面，“端到端的流量控制机制”最主要任务是“解决高速发送端，低速接收端”的情况。
+其他比如bearer，link，network和拥塞控制的任务都交由其他机制来处理。
+	PS：可见flow control仅仅就是来解决这一个单独的问题
+
+消息发送端的数据结构中有一个发送计数器，用来计数“已经发出去，但是还没收到对端应答”的packet。
+消息接收端同样有一个接受计数器，用来计数“？？？？？”的packet。每当有N个pakcet被确认接收（加到计数器上），那么就发送一个CONN_MANAGER/ACK_MSG的报文给发送端，报文中包含N的值。（N的值怎么确定？？？）
+当发送端收到接收端的应答后，就在发送计数器上减去这个N。
+
+发送端发消息前，都要检查一个发送计数器，如果超出了某个“限制”，发送端就要“避免”发送消息。典型的“避免”方法为“在API层面直接阻塞住，比如让send函数为阻塞的，应用程序调用send函数需要处于阻塞态”。最终，
+当计数器的值降下来以后，再打开阻塞。
+
+N的建议值至少为200个报文，而发送端要检查的的那个“限制”一般为2倍的N。
+
+
+==========================================================================================================================================================================================================================================================
+7.2.8.  Link Congestion Control
+
+TIPC uses a common sliding window protocol to handle traffic flow at the signalling link level. When the send queue associated to each link endpoint reaches a configurable limit, the Send Window Limit, TIPC stop sending messages over that link. Packets may still be appended to or bundled into waiting packets in the queue, but only after having been subject to a filtering function, selecting or rejecting user calls according to the sent message's importance priority. LOW_IMPORTANCE messages are not accepted at all in this situation. MEDIUM_IMPORTANCE messages are still accepted, up to a configurable limit set for that user. All other users also have their individually configurable limits, recommended to be assigned values in the following ascending order: LOW_IMPORTANCE, MEDIUM_IMPORTANCE, HIGH_IMPORTANCE, CRITICAL_IMPORTANCE, CONNECTION_MANAGER,BCAST_PROTOCOL, ROUTE_DISTRIBUTOR, NAME_DISTRIBUTOR, MSG_FRAGMENTER. MSG_BUNDLER messages are not filtered this way, since those are packets created at a later stage. Whether to accept a message due for fragmentation or not is decided on its original importance, set before the fragmentation is done. Once such a message has been accepted, its individal fragments must be handled as being more important than the original message.
+When the part of the queue containing sent packets again is under the Send Window Limit, the waiting packets must immediately be sent, but only until the Send Window Limit is reached again.
+
+7.2.8.  链路拥塞控制
+TIPC使用通用的“滑动窗口协议”在信号层处理通讯流量控制。当某个链路的某个断点的“发送队列”达到了一个可配置的限制值（window值）后，TIPC停止发送。
+此时消息在经过一系列判断处理后，还会继续被塞到发送队列里，或者先打包然后再塞到队列里（具体怎么操作要看这个消息的发送优先级）：
+1）LOW_IMPORTANCE ，这种消息不会被附加到队列中等待发送；
+2）MEDIUM_IMPORTANCE ，可配置，使能后，是可以被塞进队列的；
+3）其他：要看具体的配置；
+
+当发送队列降下来以后，这些排队的消息会被立刻发送出去
+==========================================================================================================================================================================================================================================================
+
