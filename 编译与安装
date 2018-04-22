@@ -1,0 +1,46 @@
+#1 - 从内核发布源码中找到/net/tipc目录，拷贝其中的源码到构建目录相应的目录下
+      （注：不要使用Centos源码中的tipc代码，Centos默认不支持TIPC，因此其代码是有问题的，甚至编译不通过）
+      
+#2  -  切换到内核源码根目录/usr/src/kernel/xxx
+#3  -  make oldconfig，在生成的.config文件中找到CONFIG_TIPC,打开条目
+       如果发现在.config文件中找不到CONFIG_TIPC,那么可以修改/net/tipc目录下的Kconfig和Makefile文件，打开开关，然后切换到/usr/src/kernel/xxx，
+       再执行make menuconfig，这个时候就会发现.config文件中使有CONFIG_TIPC条目的了
+       
+#4  - 执行编译，有可能会报错：
+      int tipc_netlink_start(void)
+      {
+        int res;
+
+        res = genl_register_family_with_ops(&tipc_genl_family,
+                &tipc_genl_ops, 1);
+        if (res) {
+                pr_err("Failed to register netlink interface\n");
+                return res;
+        }
+
+        tipc_genl_family_registered = 1;
+        return 0;
+      }
+      中的genl_register_family_with_ops参数个数不对。
+      此时打开/usr/src/kernnel/xxx/include/net/genetlink.h,然后再里面定位genl_register_family_with_ops，会发现参数个数确实是不匹配的
+      ，此时有两种解决方案：
+         1 -- res = genl_register_family_with_ops(&tipc_genl_family,&tipc_genl_ops);
+              如果删除最后一个参数1，就会报错  BUILD_BUG_ON_ZERO 这个函数检查失败，然后发现这个宏是有问题的，在检查&tipc_genl_ops的时候，
+              无法正常解析个数，所以行不通（这里需要深入研究下，因为其他的模块使用genl_register_family_with_ops时候，即使传入两个参数也不会
+              报错，需要深入研究下为什么单单tipc在使用的时候不行）
+         2  ---  保留原有的形态，不删除1，这样的话，就要调整genl_register_family_with_ops这个函数，又因为这个函数别的模块也要使用，所以不能
+                改，那么我们就新增一个宏：genl_register_family_with_ops_new ， 打开/usr/src/kernnel/xxx/include/net/genetlink.h ，
+                 定位到genl_register_family_with_ops，新建genl_register_family_with_ops_new，如下：
+                 //to meet tipc need
+                  #define genl_register_family_with_ops_new(family, ops,n)                      \
+                  _genl_register_family_with_ops_grps((family),                   \
+                                            (ops), n,     \
+                                            NULL, 0)
+              （问题得以解决）
+              
+              
+                                            
+                                            
+                                            
+                                            
+                                            
