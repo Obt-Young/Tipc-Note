@@ -1,0 +1,2 @@
+eth:eth0   ---   eth是所属media,eth0是所属接口名，eth：eth0结合在一起就能定位到某张网卡，比如网卡A使用ethernet作为链路层，其在链路层协议栈中
+                 的名字是eth0
