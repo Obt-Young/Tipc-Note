@@ -1,0 +1,135 @@
+--------------------------INVITE--------------------------
+用途：
+SIP的邀请功能主要用来向指定目标发出会话邀请(比如打电话)
+
+The most important method in SIP is the INVITE method, which is used
+to establish a session between participants.
+
+The INVITE
+method is the only way defined in this specification to establish a
+dialog.
+
+--------------------------Register--------------------------
+用途：
+SIP的注册功能主要用来构建"定位服务(location service)"所需的数据库
+Registration is used for "routing"incoming SIP requests
+
+
+Bob is not limited to registering from a single device. For example,
+both his SIP phone at home and the one in the office could send
+registrations. This information is stored together in the location
+service and allows a proxy to perform various types of searches to
+locate Bob. Similarly, more than one user can be registered on a
+single device at the same time.
+
+什么是定位服务？
+The location service is just an abstract concept. It generally
+contains information that allows a proxy to input a URI and receive a
+set of zero or more URIs that tell the proxy where to send the
+request. Registrations are one way to create this information, but
+not the only way. Arbitrary mapping functions can be configured at
+the discretion of the administrator.
+
+Since registrations play an important role in
+SIP, a UAS that handles a REGISTER is given the special name
+registrar.
+
+
+--------------------------Dialog--------------------------
+A dialog is a
+peer-to-peer SIP relationship between two user agents that persists
+for some time.
+
+The invite method is the ONLY WAY defined in this specification to 
+establish a dialog.
+
+Dialogs are discussed thoroughly in Section 12
+
+
+--------------------------Session--------------------------
+A session is a
+collection of participants, AND streams of media between them, for
+the purposes of communication.
+
+How sessions are initiated, resulting in one or more SIP dialogs 
+---> Section 13
+How characteristics of that session are modified through
+the use of an INVITE request within a dialog
+---> Section 14
+How a session is terminated
+---> Section 15
+
+
+--------------------------ARCH--------------------------
+Proxy servers, location servers, and registrar servers defined above are logical
+entities; implementations MAY combine them into a single application.
+
+
+--------------------------SIP Messages--------------------------
+SIP Messages: Requests Message  &  Responses Message
+
+
+(start-line)Request-Line / Status-Line
+*message-header
+CRLF
+[ message-body ]
+
+
+--------------------------Request-Line--------------------------
+"SIP requests" are distinguished by having a "Request-Line" for a start-line.
+
+	Request-Line = Method SP Request-URI SP SIP-Version CRLF
+
+Method(six methods):
+REGISTER for "registering" contact information
+INVITE, ACK, and CANCEL for "setting up" sessions
+BYE for "terminating" sessions
+OPTIONS for "querying" servers about their capabilities.
+
+Request-URI:
+SIP or SIPS URI,It indicates the user or service to which this request is "being" addressed.
+
+
+--------------------------Status-Line--------------------------
+"SIP responses" are distinguished from requests by having a "Status-Line"
+as their start-line. 
+	
+	Status-Line = SIP-Version SP Status-Code SP Reason-Phrase CRLF
+	
+Status-Code:
+	1xx: Provisional -- request received, continuing to process therequest;
+	2xx: Success -- the action was successfully received, understood,and accepted;
+	3xx: Redirection -- further action needs to be taken in order to complete the request;
+	4xx: Client Error -- the request contains bad syntax or cannot be fulfilled at this server;
+	5xx: Server Error -- the server failed to fulfill an apparently valid request;
+	6xx: Global Failure -- the request cannot be fulfilled at any server.
+
+
+--------------------------*message-header(Header Fields)--------------------------
+SIP header fields are similar to HTTP header fields in both syntax
+and semantics.
+
+
+
+--------------------------UA Behavior--------------------------
+UAC and UAS procedures depend strongly on two factors. First, based
+on whether the request or response is inside or outside of a dialog,
+and second, based on the method of a request. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

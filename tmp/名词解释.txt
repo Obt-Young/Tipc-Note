@@ -1,0 +1,233 @@
+Address-of-Record: An address-of-record (AOR) is a SIP or SIPS URI
+that points to a domain with a location service that can map
+the URI to another URI where the user might be available.
+Typically, the location service is populated through
+registrations. An AOR is frequently thought of as the "public
+address" of the user.
+Back-to-Back User Agent: A back-to-back user agent (B2BUA) is a
+logical entity that receives a request and processes it as a
+user agent server (UAS). In order to determine how the request
+should be answered, it acts as a user agent client (UAC) and
+generates requests. Unlike a proxy server, it maintains dialog
+state and must participate in all requests sent on the dialogs
+it has established. Since it is a concatenation of a UAC and
+UAS, no explicit definitions are needed for its behavior.
+Call: A call is an informal term that refers to some communication
+between peers, generally set up for the purposes of a
+multimedia conversation.
+Call Leg: Another name for a dialog [31]; no longer used in this
+specification.
+Call Stateful: A proxy is call stateful if it retains state for a
+dialog from the initiating INVITE to the terminating BYE
+request. A call stateful proxy is always transaction stateful,
+but the converse is not necessarily true.
+Client: A client is any network element that sends SIP requests
+and receives SIP responses. Clients may or may not interact
+directly with a human user. User agent clients and proxies are
+clients.
+Conference: A multimedia session (see below) that contains
+multiple participants.
+Core: Core designates the functions specific to a particular type
+of SIP entity, i.e., specific to either a stateful or stateless
+proxy, a user agent or registrar. All cores, except those for
+the stateless proxy, are transaction users.
+Dialog: A dialog is a peer-to-peer SIP relationship between two
+UAs that persists for some time. A dialog is established by
+SIP messages, such as a 2xx response to an INVITE request. A
+dialog is identified by a call identifier, local tag, and a
+remote tag. A dialog was formerly known as a call leg in RFC
+2543.
+Downstream: A direction of message forwarding within a transaction
+that refers to the direction that requests flow from the user
+agent client to user agent server.
+Final Response: A response that terminates a SIP transaction, as
+opposed to a provisional response that does not. All 2xx, 3xx,
+4xx, 5xx and 6xx responses are final.
+Header: A header is a component of a SIP message that conveys
+information about the message. It is structured as a sequence
+of header fields.
+Header Field: A header field is a component of the SIP message
+header. A header field can appear as one or more header field
+rows. Header field rows consist of a header field name and zero
+or more header field values. Multiple header field values on a
+given header field row are separated by commas. Some header
+fields can only have a single header field value, and as a
+result, always appear as a single header field row.
+Header Field Value: A header field value is a single value; a
+header field consists of zero or more header field values.
+Home Domain: The domain providing service to a SIP user.
+Typically, this is the domain present in the URI in the
+address-of-record of a registration.
+Informational Response: Same as a provisional response.
+Initiator, Calling Party, Caller: The party initiating a session
+(and dialog) with an INVITE request. A caller retains this
+role from the time it sends the initial INVITE that established
+a dialog until the termination of that dialog.
+Invitation: An INVITE request.
+Invitee, Invited User, Called Party, Callee: The party that
+receives an INVITE request for the purpose of establishing a
+new session. A callee retains this role from the time it
+receives the INVITE until the termination of the dialog
+established by that INVITE.
+Location Service: A location service is used by a SIP redirect or
+proxy server to obtain information about a callee’s possible
+location(s). It contains a list of bindings of address-of-
+record keys to zero or more contact addresses. The bindings
+can be created and removed in many ways; this specification
+defines a REGISTER method that updates the bindings.
+Loop: A request that arrives at a proxy, is forwarded, and later
+arrives back at the same proxy. When it arrives the second
+time, its Request-URI is identical to the first time, and other
+header fields that affect proxy operation are unchanged, so
+that the proxy would make the same processing decision on the
+request it made the first time. Looped requests are errors,
+and the procedures for detecting them and handling them are
+described by the protocol.
+Loose Routing: A proxy is said to be loose routing if it follows
+the procedures defined in this specification for processing of
+the Route header field. These procedures separate the
+destination of the request (present in the Request-URI) from
+the set of proxies that need to be visited along the way
+(present in the Route header field). A proxy compliant to
+these mechanisms is also known as a loose router.
+Message: Data sent between SIP elements as part of the protocol.
+SIP messages are either requests or responses.
+Method: The method is the primary function that a request is meant
+to invoke on a server. The method is carried in the request
+message itself. Example methods are INVITE and BYE.
+Outbound Proxy: A proxy that receives requests from a client, even
+though it may not be the server resolved by the Request-URI.
+Typically, a UA is manually configured with an outbound proxy,
+or can learn about one through auto-configuration protocols.
+Parallel Search: In a parallel search, a proxy issues several
+requests to possible user locations upon receiving an incoming
+request. Rather than issuing one request and then waiting for
+the final response before issuing the next request as in a
+sequential search, a parallel search issues requests without
+waiting for the result of previous requests.
+Provisional Response: A response used by the server to indicate
+progress, but that does not terminate a SIP transaction. 1xx
+responses are provisional, other responses are considered
+final.
+Proxy, Proxy Server: An intermediary entity that acts as both a
+server and a client for the purpose of making requests on
+behalf of other clients. A proxy server primarily plays the
+role of routing, which means its job is to ensure that a
+request is sent to another entity "closer" to the targeted
+user. Proxies are also useful for enforcing policy (for
+example, making sure a user is allowed to make a call). A
+proxy interprets, and, if necessary, rewrites specific parts of
+a request message before forwarding it.
+Recursion: A client recurses on a 3xx response when it generates a
+new request to one or more of the URIs in the Contact header
+field in the response.
+Redirect Server: A redirect server is a user agent server that
+generates 3xx responses to requests it receives, directing the
+client to contact an alternate set of URIs.
+Registrar: A registrar is a server that accepts REGISTER requests
+and places the information it receives in those requests into
+the location service for the domain it handles.
+Regular Transaction: A regular transaction is any transaction with
+a method other than INVITE, ACK, or CANCEL.
+Request: A SIP message sent from a client to a server, for the
+purpose of invoking a particular operation.
+Response: A SIP message sent from a server to a client, for
+indicating the status of a request sent from the client to the
+server.
+Ringback: Ringback is the signaling tone produced by the calling
+party’s application indicating that a called party is being
+alerted (ringing).
+Route Set: A route set is a collection of ordered SIP or SIPS URI
+which represent a list of proxies that must be traversed when
+sending a particular request. A route set can be learned,
+through headers like Record-Route, or it can be configured.
+Server: A server is a network element that receives requests in
+order to service them and sends back responses to those
+requests. Examples of servers are proxies, user agent servers,
+redirect servers, and registrars.
+Sequential Search: In a sequential search, a proxy server attempts
+each contact address in sequence, proceeding to the next one
+only after the previous has generated a final response. A 2xx
+or 6xx class final response always terminates a sequential
+search.
+Session: From the SDP specification: "A multimedia session is a
+set of multimedia senders and receivers and the data streams
+flowing from senders to receivers. A multimedia conference is
+an example of a multimedia session." (RFC 2327 [1]) (A session
+as defined for SDP can comprise one or more RTP sessions.) As
+defined, a callee can be invited several times, by different
+calls, to the same session. If SDP is used, a session is
+defined by the concatenation of the SDP user name, session id,
+network type, address type, and address elements in the origin
+field.
+SIP Transaction: A SIP transaction occurs between a client and a
+server and comprises all messages from the first request sent
+from the client to the server up to a final (non-1xx) response
+sent from the server to the client. If the request is INVITE
+and the final response is a non-2xx, the transaction also
+includes an ACK to the response. The ACK for a 2xx response to
+an INVITE request is a separate transaction.
+Spiral: A spiral is a SIP request that is routed to a proxy,
+forwarded onwards, and arrives once again at that proxy, but
+this time differs in a way that will result in a different
+processing decision than the original request. Typically, this
+means that the request’s Request-URI differs from its previous
+arrival. A spiral is not an error condition, unlike a loop. A
+typical cause for this is call forwarding. A user calls
+joe@example.com. The example.com proxy forwards it to Joe’s
+PC, which in turn, forwards it to bob@example.com. This
+request is proxied back to the example.com proxy. However,
+this is not a loop. Since the request is targeted at a
+different user, it is considered a spiral, and is a valid
+condition.
+Stateful Proxy: A logical entity that maintains the client and
+server transaction state machines defined by this specification
+during the processing of a request, also known as a transaction
+stateful proxy. The behavior of a stateful proxy is further
+defined in Section 16. A (transaction) stateful proxy is not
+the same as a call stateful proxy.
+Stateless Proxy: A logical entity that does not maintain the
+client or server transaction state machines defined in this
+specification when it processes requests. A stateless proxy
+forwards every request it receives downstream and every
+response it receives upstream.
+Strict Routing: A proxy is said to be strict routing if it follows
+the Route processing rules of RFC 2543 and many prior work in
+progress versions of this RFC. That rule caused proxies to
+destroy the contents of the Request-URI when a Route header
+field was present. Strict routing behavior is not used in this
+specification, in favor of a loose routing behavior. Proxies
+that perform strict routing are also known as strict routers.
+Target Refresh Request: A target refresh request sent within a
+dialog is defined as a request that can modify the remote
+target of the dialog.
+Transaction User (TU): The layer of protocol processing that
+resides above the transaction layer. Transaction users include
+the UAC core, UAS core, and proxy core.
+Upstream: A direction of message forwarding within a transaction
+that refers to the direction that responses flow from the user
+agent server back to the user agent client.
+URL-encoded: A character string encoded according to RFC 2396,
+Section 2.4 [5].
+User Agent Client (UAC): A user agent client is a logical entity
+that creates a new request, and then uses the client
+transaction state machinery to send it. The role of UAC lasts
+only for the duration of that transaction. In other words, if
+a piece of software initiates a request, it acts as a UAC for
+the duration of that transaction. If it receives a request
+later, it assumes the role of a user agent server for the
+processing of that transaction.
+UAC Core: The set of processing functions required of a UAC that
+reside above the transaction and transport layers.
+User Agent Server (UAS): A user agent server is a logical entity
+that generates a response to a SIP request. The response
+accepts, rejects, or redirects the request. This role lasts
+only for the duration of that transaction. In other words, if
+a piece of software responds to a request, it acts as a UAS for
+the duration of that transaction. If it generates a request
+later, it assumes the role of a user agent client for the
+processing of that transaction.
+UAS Core: The set of processing functions required at a UAS that
+resides above the transaction and transport layers.
+User Agent (UA): A logical entity that can act as both a user
+agent client and user agent server.
